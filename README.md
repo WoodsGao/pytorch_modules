@@ -12,18 +12,7 @@ A neural network toolkit built on pytorch/opencv/numpy that includes neural netw
 
 ## Installation
 
-### As a subtree
-
-    git remote add pytorch_modules https://github.com/woodsgao/pytorch_modules 
-    git subtree add --prefix=<subtree_path> pytorch_modules master
-    cd <subtree_path>
-    pip install -r requirements.txt
-
-### As a repository
-
-    git clone https://github.com/woodsgao/pytorch_modules
-    cd pytorch_modules
-    pip install -r requirements.txt
+    sudo pip3 install pytorch_modules
 
 ## Usage
 
