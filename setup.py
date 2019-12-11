@@ -11,8 +11,8 @@ DESCRIPTION = 'A neural network toolkit.'
 URL = 'https://github.com/woodsgao/pytorch_modules'
 EMAIL = 'woodsgao@outlook.com'
 AUTHOR = 'woodsgao'
-REQUIRES_PYTHON = '>=3.5.4'
-VERSION = '0.1.0'
+REQUIRES_PYTHON = '>=3.5.2'
+VERSION = '0.1.1'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
