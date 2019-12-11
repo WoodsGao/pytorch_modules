@@ -62,11 +62,7 @@ class ResConv(nn.Module):
         )
 
     def forward(self, x):
-        if self.training and self.add and random() < self.drop_rate:
-            return x
         f = self.block(x)
         if self.add:
-            if not self.training:
-                f *= (1 - self.drop_rate)
             f += x
         return f
