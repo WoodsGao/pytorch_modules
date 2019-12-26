@@ -23,11 +23,17 @@ class Trainer:
                  weights='',
                  accumulate=1,
                  adam=False,
-                 lr=0,
+                 lr=1e-3,
+                 warmup=10,
+                 lr_decay=1e-3,
                  mixed_precision=False):
         self.accumulate_count = 0
         self.metrics = 0
         self.epoch = 0
+        self._lr = lr
+        self.warmup = warmup
+        self.lr_decay = lr_decay
+        lr = self.lr_schedule()
         self.accumulate = accumulate
         model = model.to(device)
         self.fetcher = fetcher
@@ -37,24 +43,20 @@ class Trainer:
         else:
             self.mixed_precision = mixed_precision
         if adam:
-            optimizer = Ranger(model.parameters(),
-                               lr=lr if lr > 0 else 1e-3,
-                               weight_decay=1e-5, 
-                               eps=1e-4 if self.mixed_precision else 1e-8)
+            optimizer = optim.AdamW(model.parameters(),
+                                    lr=lr,
+                                    weight_decay=1e-5,
+                                    eps=1e-4 if self.mixed_precision else 1e-8)
         else:
             optimizer = optim.SGD(model.parameters(),
-                                  lr=lr if lr > 0 else 1e-3,
+                                  lr=lr,
                                   momentum=0.9,
-                                  weight_decay=1e-5,
-                                  nesterov=True)
+                                  weight_decay=1e-5)
         self.adam = adam
         self.model = model
         self.optimizer = optimizer
         if weights:
             self.load(weights)
-            if lr > 0:
-                for pg in self.optimizer.param_groups:
-                    pg['lr'] = lr
         if self.mixed_precision:
             self.model, self.optimizer = amp.initialize(self.model,
                                                         self.optimizer,
@@ -66,6 +68,13 @@ class Trainer:
         self.optimizer.zero_grad()
         if dist.is_initialized():
             self.model.require_backward_grad_sync = False
+
+    def lr_schedule(self):
+        if self.epoch < self.warmup:
+            lr = self._lr * (self.epoch + 1) / (self.warmup + 1)
+        else:
+            lr = self._lr * (1 - self.lr_decay)**(self.epoch - self.warmup)
+        print('lr change to: {%6lf}'.format(lr))
 
     def load(self, weights):
         state_dict = torch.load(weights, map_location=device)
@@ -80,6 +89,9 @@ class Trainer:
         if 'e' in state_dict:
             self.epoch = state_dict['e']
         self.model.load_state_dict(state_dict['model'], strict=False)
+        lr = self.lr_schedule()
+        for pg in self.optimizer.param_groups:
+            pg['lr'] = lr
 
     def save(self, save_path_list):
         if len(save_path_list) == 0:
@@ -128,11 +140,10 @@ class Trainer:
                 loss.backward()
             mem = torch.cuda.memory_cached() / 1E9 if torch.cuda.is_available(
             ) else 0  # (GB)
-            pbar.set_description('mem: %8g, loss: %8g, scale: %8g' %
-                                 (mem, total_loss / batch_idx, inputs.size(2)))
+            pbar.set_description('mem: %8g, loss: %8g' %
+                                 (mem, total_loss / batch_idx))
             if self.accumulate_count % self.accumulate == 0:
                 self.accumulate_count = 0
-                # print(self.model.module.backbone.block1[1].blocks[0].block[1].conv.weight)
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 10)
                 self.optimizer.step()
                 self.optimizer.zero_grad()
@@ -140,7 +151,8 @@ class Trainer:
                     self.model.require_backward_grad_sync = False
         torch.cuda.empty_cache()
         self.epoch += 1
-        # lr decay
+        # lr warmup and decay
+        lr = self.lr_schedule()
         for pg in self.optimizer.param_groups:
-            pg['lr'] *= (1 - 1e-8)
+            pg['lr'] *= lr
         return total_loss / len(self.fetcher)
