@@ -2,20 +2,14 @@ import torch.nn as nn
 from . import Identity
 
 
-class AdaGroupNorm(nn.Module):
-    def __init__(self, channels):
-        super(AdaGroupNorm, self).__init__()
-        if channels % 4 != 0:
-            self.norm = Identity()
-        else:
-            c = channels
-            p = 1
-            while c % 2 == 0 and c > 0:
-                c /= 2
-                p += 1
-            p //= 2
-            groups = 2**p
-            self.norm = nn.GroupNorm(groups, channels)
+def ada_group_norm(planes):
+    if planes % 4 != 0:
+        return Identity()
+    else:
+        c = planes
+        p = 1
+        while c % 2 == 0 and c > p:
+            c /= 2
+            p *= 2
+        return nn.GroupNorm(int(p), planes)
 
-    def forward(self, x):
-        return self.norm(x)

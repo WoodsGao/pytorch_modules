@@ -1,7 +1,7 @@
 import math
 import torch
 import torch.nn as nn
-from ..nn import Swish, SimpleSwish
+from ..nn import Swish, SimpleSwish, Identity, ada_group_norm
 
 
 class BasicModel(nn.Module):
@@ -14,7 +14,7 @@ class BasicModel(nn.Module):
         else:
             module = module.modules()
         for m in module:
-            if isinstance(m, nn.Conv2d):
+            if isinstance(m, (nn.Conv2d, nn.Linear)):
                 nn.init.kaiming_normal_(m.weight,
                                         mode="fan_out",
                                         nonlinearity="relu")
@@ -23,9 +23,51 @@ class BasicModel(nn.Module):
             elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
                 nn.init.ones_(m.weight)
                 nn.init.zeros_(m.bias)
-            elif isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, 0.01)
-                nn.init.zeros_(m.bias)
+
+    def fuse_bn(self, module=None, replace_by_gn=False):
+        if module is None:
+            module = self
+        last_conv = None
+        for name, m in module.named_children():
+            if isinstance(m, nn.Conv2d):
+                last_conv = name
+            elif isinstance(m, nn.BatchNorm2d):
+                if last_conv is None:
+                    continue
+                conv = module._modules[last_conv]
+                w = conv.weight
+                mean = m.running_mean
+                var_sqrt = torch.sqrt(m.running_var + m.eps)
+
+                beta = m.weight
+                gamma = m.bias
+
+                if conv.bias is not None:
+                    b = conv.bias
+                else:
+                    b = mean.new_zeros(mean.shape)
+
+                w = w * (beta / var_sqrt).reshape([conv.out_channels, 1, 1, 1])
+                b = (b - mean) / var_sqrt * beta + gamma
+                module._modules[last_conv] = nn.Conv2d(conv.in_channels,
+                                                       conv.out_channels,
+                                                       conv.kernel_size,
+                                                       conv.stride,
+                                                       conv.padding,
+                                                       conv.dilation, 
+                                                       conv.groups,
+                                                       bias=True)
+                module._modules[last_conv].weight = nn.Parameter(w)
+                module._modules[last_conv].bias = nn.Parameter(b)
+                if replace_by_gn:
+                    module._modules[name] = ada_group_norm(conv.out_channels)
+
+                else:
+                    module._modules[name] = Identity()
+                last_conv = None
+            else:
+                last_conv = None
+                self.fuse_bn(m, replace_by_gn)
 
     def freeze(self, module=None):
         if module is None:
