@@ -1,5 +1,5 @@
 import torch.nn as nn
-from . import Swish
+from .activation import Swish
 
 
 class SELayer(nn.Module):

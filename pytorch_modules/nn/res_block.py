@@ -1,68 +1,101 @@
 import torch.nn as nn
-from random import random
-from . import CNS, SeparableCNS, EmptyLayer, SELayer, WSConv2d, DropConnect
+from . import build_conv2d
 
 
-class ResBlock(nn.Module):
-    def __init__(
-            self,
-            in_channels,
-            out_channels,
-            ksize=3,
-            stride=1,
-            dilation=1,
-            drop_rate=0.2,
-            se=True,
-            reps=1,
-    ):
-        super(ResBlock, self).__init__()
-        blocks = [
-            SeparableCNS(in_channels, out_channels, ksize, stride, dilation,
-                         drop_rate, se)
-        ]
-        for i in range(reps):
-            blocks.append(
-                ResConv(out_channels, out_channels, ksize, 1, dilation,
-                        drop_rate, se))
-        self.blocks = nn.Sequential(*blocks)
+class BasicBlock(nn.Module):
+    expansion = 1
 
-    def forward(self, x):
-        return self.blocks(x)
-
-
-class ResConv(nn.Module):
     def __init__(self,
-                 in_channels,
-                 out_channels,
-                 ksize=3,
+                 inplanes,
+                 planes,
                  stride=1,
-                 dilation=1,
-                 drop_rate=0.2,
-                 se=True):
-        super(ResConv, self).__init__()
-        if stride == 1 and in_channels == out_channels:
-            self.add = True
+                 groups=1,
+                 base_width=64,
+                 dilation=1):
+        super(BasicBlock, self).__init__()
+        # Both self.conv1 and self.downsample layers downsample the input when stride != 1
+        self.conv1 = build_conv2d(inplanes, planes, 3, stride, groups,
+                                  dilation)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = build_conv2d(planes, planes * self.expansion, 3, 1,
+                                  groups, dilation)
+        self.bn2 = nn.BatchNorm2d(planes * self.expansion)
+        self.stride = stride
+        if stride != 1 or inplanes != planes * self.expansion:
+            self.downsample = nn.Sequential(
+                build_conv2d(inplanes, planes * self.expansion, 1, stride),
+                nn.BatchNorm2d(planes * self.expansion),
+            )
         else:
-            self.add = False
-        self.block = nn.Sequential(
-            SeparableCNS(in_channels,
-                         out_channels,
-                         ksize=ksize,
-                         stride=stride,
-                         dilation=dilation),
-            SeparableCNS(out_channels,
-                         out_channels,
-                         ksize=ksize,
-                         stride=1,
-                         dilation=dilation,
-                         activate=False),
-            SELayer(out_channels) if se else EmptyLayer(),
-            DropConnect(drop_rate)
-            if drop_rate > 0 and self.add else EmptyLayer(),
-        )
+            self.downsample = None
 
     def forward(self, x):
-        f = self.block(x)
-        if self.add:
-            f += x
-        return f
+        identity = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out += identity
+        out = self.relu(out)
+
+        return out
+
+
+class Bottleneck(nn.Module):
+    expansion = 4
+
+    def __init__(self,
+                 inplanes,
+                 planes,
+                 stride=1,
+                 groups=1,
+                 base_width=64,
+                 dilation=1):
+        super(Bottleneck, self).__init__()
+        width = int(planes * (base_width / 64.)) * groups
+        # Both self.conv2 and self.downsample layers downsample the input when stride != 1
+        self.conv1 = build_conv2d(inplanes, width, 1)
+        self.bn1 = nn.BatchNorm2d(width)
+        self.conv2 = build_conv2d(width, width, 3, stride, groups, dilation)
+        self.bn2 = nn.BatchNorm2d(width)
+        self.conv3 = build_conv2d(width, planes * self.expansion, 1)
+        self.bn3 = nn.BatchNorm2d(planes * self.expansion)
+        self.relu = nn.ReLU(inplace=True)
+        self.stride = stride
+        if stride != 1 or inplanes != planes * self.expansion:
+            self.downsample = nn.Sequential(
+                build_conv2d(inplanes, planes * self.expansion, 1, stride),
+                nn.BatchNorm2d(planes * self.expansion),
+            )
+        else:
+            self.downsample = None
+
+    def forward(self, x):
+        identity = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out += identity
+        out = self.relu(out)
+
+        return out

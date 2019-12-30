@@ -1,19 +1,19 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from . import SeparableCNS, CNS
+from . import SeparableConvNormAct, ConvNormAct
 from ..utils import device
 
 
 class BiFPN(nn.Module):
-    def __init__(self, channels_list, out_channels=128, reps=3, eps=1e-4):
+    def __init__(self, channels_list, planes=128, reps=3, eps=1e-4):
         """[summary]
         
         Arguments:
             channels_list {list} -- channels of feature maps, from low levels to high levels
         
         Keyword Arguments:
-            out_channels {int} -- out channels  (default: {128})
+            planes {int} -- out channels  (default: {128})
             reps {int} -- repeat times (default: {3})
             eps {int} -- a smalll number (default: {1e-4})
         """
@@ -24,7 +24,7 @@ class BiFPN(nn.Module):
             torch.ones([reps, len(channels_list), 3]))
         first_conv = []
         for idx, channels in enumerate(channels_list):
-            first_conv.append(CNS(channels, out_channels, 1))
+            first_conv.append(ConvNormAct(channels, planes, 1))
         self.first_conv = nn.ModuleList(first_conv)
         conv_td_list = []
         conv_out_list = []
@@ -32,8 +32,8 @@ class BiFPN(nn.Module):
             conv_td = []
             conv_out = []
             for idx, channels in enumerate(channels_list):
-                conv_td.append(SeparableCNS(out_channels, out_channels))
-                conv_out.append(SeparableCNS(out_channels, out_channels))
+                conv_td.append(SeparableConvNormAct(planes, planes))
+                conv_out.append(SeparableConvNormAct(planes, planes))
             conv_td = nn.ModuleList(conv_td)
             conv_out = nn.ModuleList(conv_out)
             conv_td_list.append(conv_td)
@@ -66,8 +66,7 @@ class BiFPN(nn.Module):
                     high = ftd_list[-1]
                     high = F.interpolate(high,
                                          scale_factor=2,
-                                         mode='bilinear',
-                                         align_corners=True)
+                                         mode='nearest')
                     high *= td_weights[li, idx, 1]
                     ftd += high
                 ftd = conv(ftd)
@@ -83,8 +82,7 @@ class BiFPN(nn.Module):
                     low = fout_list[-1]
                     low = F.interpolate(low,
                                         scale_factor=0.5,
-                                        mode='bilinear',
-                                        align_corners=True)
+                                        mode='nearest')
                     low = low * out_weights[li, idx, 2]
                     ftd += f
                     ftd += low

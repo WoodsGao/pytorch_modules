@@ -12,16 +12,12 @@ URL = 'https://github.com/woodsgao/pytorch_modules'
 EMAIL = 'woodsgao@outlook.com'
 AUTHOR = 'woodsgao'
 REQUIRES_PYTHON = '>=3.5.2'
-VERSION = '0.1.2'
+VERSION = '0.2.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
     # 'requests', 'maya', 'records',
-    'torch>=1.0',
-    'opencv-python<=3.4.8.29',
-    'numpy>=1.11',
-    'tqdm',
-    'lmdb>=0.98',
+    'torch>=1.3',
 ]
 
 # What packages are optional?

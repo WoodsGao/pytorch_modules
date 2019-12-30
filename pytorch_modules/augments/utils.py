@@ -70,7 +70,7 @@ def augments_parser(cfg, src_size, dst_size):
                 ]), matrix)
     if 'scale' in cfg:
         if random() < cfg['scale']:
-            factor = [uniform(0.8, 1.1), uniform(0.8, 1.1)]
+            factor = [uniform(0.5, 2), uniform(0.5, 2)]
             matrix = np.dot(
                 np.array([[factor[0], 0, (1 - factor[0]) * 0.5 * dst_size],
                           [0, factor[1], (1 - factor[1]) * 0.5 * dst_size],

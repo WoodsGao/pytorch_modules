@@ -39,12 +39,8 @@ class ResNet(BasicModel):
                  num_classes=1000,
                  groups=1,
                  width_per_group=64,
-                 replace_stride_with_dilation=None,
-                 norm_layer=None):
+                 replace_stride_with_dilation=None):
         super(ResNet, self).__init__()
-        if norm_layer is None:
-            norm_layer = nn.BatchNorm2d
-        self._norm_layer = norm_layer
 
         self.inplanes = 64
         self.dilation = 1
@@ -57,7 +53,7 @@ class ResNet(BasicModel):
         self.groups = groups
         self.base_width = width_per_group
         self.conv1 = build_conv2d(3, self.inplanes, 7, stride=2)
-        self.bn1 = norm_layer(self.inplanes)
+        self.bn1 = nn.BatchNorm2d(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
@@ -76,37 +72,26 @@ class ResNet(BasicModel):
                                        layers[3],
                                        stride=2,
                                        dilate=replace_stride_with_dilation[2])
-        self.avgpool = nn.AdaptiveAvgPool2d(
-            (1, 1))
-        self.fc = nn.Linear(
-            512 * block.expansion,
-            num_classes)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(512 * block.expansion, num_classes)
         self.stages = nn.ModuleList([
             nn.Sequential(self.conv1, self.bn1, self.relu),
             nn.Sequential(self.maxpool, self.layer1), self.layer2, self.layer3,
             self.layer4
         ])
 
-        self._initialize_weights()
+        self.initialize_weights()
 
     def _make_layer(self, block, planes, blocks, stride=1, dilate=False):
-        norm_layer = self._norm_layer
-        downsample = None
         previous_dilation = self.dilation
         if dilate:
             self.dilation *= stride
             stride = 1
-        if stride != 1 or self.inplanes != planes * block.expansion:
-            downsample = nn.Sequential(
-                build_conv2d(self.inplanes, planes * block.expansion, 1,
-                             stride),
-                norm_layer(planes * block.expansion),
-            )
 
         layers = []
         layers.append(
-            block(self.inplanes, planes, stride, downsample, self.groups,
-                  self.base_width, previous_dilation, norm_layer))
+            block(self.inplanes, planes, stride, self.groups, self.base_width,
+                  previous_dilation))
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
             layers.append(
@@ -114,13 +99,11 @@ class ResNet(BasicModel):
                       planes,
                       groups=self.groups,
                       base_width=self.base_width,
-                      dilation=self.dilation,
-                      norm_layer=norm_layer))
+                      dilation=self.dilation))
 
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        outputs = []
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -144,7 +127,7 @@ def _resnet(arch, block, layers, pretrained, progress, **kwargs):
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],
                                               progress=progress)
-        model.load_state_dict(state_dict)
+        model.load_state_dict(state_dict, strict=False)
     return model
 
 

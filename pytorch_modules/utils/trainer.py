@@ -35,13 +35,13 @@ class Trainer:
         self.lr_decay = lr_decay
         lr = self.lr_schedule()
         self.accumulate = accumulate
-        model = model.to(device)
         self.fetcher = fetcher
         self.loss_fn = loss_fn
         if amp is None:
             self.mixed_precision = False
         else:
             self.mixed_precision = mixed_precision
+        model = model.to(device)
         if adam:
             optimizer = optim.AdamW(model.parameters(),
                                     lr=lr,
@@ -74,7 +74,8 @@ class Trainer:
             lr = self._lr * (self.epoch + 1) / (self.warmup + 1)
         else:
             lr = self._lr * (1 - self.lr_decay)**(self.epoch - self.warmup)
-        print('lr change to: {%6lf}'.format(lr))
+        print('lr change to: %6lf' % lr)
+        return lr
 
     def load(self, weights):
         state_dict = torch.load(weights, map_location=device)
@@ -154,5 +155,4 @@ class Trainer:
         # lr warmup and decay
         lr = self.lr_schedule()
         for pg in self.optimizer.param_groups:
-            pg['lr'] *= lr
-        return total_loss / len(self.fetcher)
+            pg['lr'] = lr

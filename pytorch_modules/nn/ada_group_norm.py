@@ -1,12 +1,12 @@
 import torch.nn as nn
-from . import EmptyLayer
+from . import Identity
 
 
 class AdaGroupNorm(nn.Module):
     def __init__(self, channels):
         super(AdaGroupNorm, self).__init__()
         if channels % 4 != 0:
-            self.norm = EmptyLayer()
+            self.norm = Identity()
         else:
             c = channels
             p = 1

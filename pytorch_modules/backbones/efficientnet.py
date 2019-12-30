@@ -82,7 +82,7 @@ class EfficientNet(BasicModel):
                 MBConvBlock(last_width,
                             width,
                             ksize,
-                            stride if replace_stride_with_dilation[len(self.stages)] else 1,
+                            1 if replace_stride_with_dilation[len(self.stages)] else stride,
                             dilation=dilation,
                             expand_ratio=expand_ratio,
                             se_ratio=se_ratio,
@@ -117,7 +117,7 @@ class EfficientNet(BasicModel):
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
         self._dropout = nn.Dropout(0.2)
         self._fc = nn.Linear(width * 4, num_classes)
-        self._initialize_weights()
+        self.initialize_weights()
 
     def forward(self, inputs):
         """ Calls extract_features to extract features, applies final linear layer, and returns logits. """
@@ -157,5 +157,5 @@ def efficientnet(model_id=0, pretrained=False, progress=True, **kwargs):
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[model_id],
                                               progress=progress)
-        model.load_state_dict(state_dict)
+        model.load_state_dict(state_dict, strict=False)
     return model

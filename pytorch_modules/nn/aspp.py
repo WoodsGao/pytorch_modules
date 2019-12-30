@@ -1,39 +1,36 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from . import CNS, SeparableCNS
+from . import ConvNormAct, SeparableConvNormAct
 
 
 class AsppPooling(nn.Module):
-    def __init__(self):
+    def __init__(self, inplanes, planes):
         super(AsppPooling, self).__init__()
-        self.gap = nn.AdaptiveAvgPool2d(1)
+        self.gap = nn.Sequential(nn.AdaptiveAvgPool2d(1),
+                                 ConvNormAct(inplanes, planes, 1))
 
     def forward(self, x):
-        size = x.size()[2:]
-        pool = self.gap(x)
-        out = F.interpolate(pool, size, mode='bilinear', align_corners=True)
-        return out
+        size = x.shape[-2:]
+        return F.interpolate(self.gap(x),
+                             size=size,
+                             mode='bilinear',
+                             align_corners=False)
 
 
 class Aspp(nn.Module):
-    def __init__(self, in_channels, out_channels, atrous_rates, eps=1e-4):
+    def __init__(self, inplanes, planes, atrous_rates=[12, 24, 36]):
         super(Aspp, self).__init__()
-        blocks = [AsppPooling()]
+        self.blocks = nn.ModuleList(
+            [AsppPooling(inplanes, planes),
+             ConvNormAct(inplanes, planes, 1)])
         for rate in atrous_rates:
-            blocks.append(
-                CNS(in_channels, in_channels, groups=in_channels, dilation=rate))
-        self.blocks = nn.ModuleList(blocks)
-        self.aspp_weights = nn.Parameter(torch.ones(len(atrous_rates) + 2))
-        self.project = CNS(in_channels, out_channels, 1)
-        self.eps = eps
+            self.blocks.append(SeparableConvNormAct(inplanes, planes, dilation=rate))
+        self.project = ConvNormAct(planes * len(self.blocks), planes, 1)
 
     def forward(self, x):
-        aspp_weights = self.aspp_weights.relu()
-        aspp_weights = aspp_weights / (aspp_weights.sum(0, keepdim=True) +
-                                       self.eps)
-        output = x * aspp_weights[-1]
-        for bi, block in enumerate(self.blocks):
-            output += block(x) * aspp_weights[bi]
-        output = self.project(output)
-        return output
+        res = []
+        for block in self.blocks:
+            res.append(block(x))
+        res = torch.cat(res, dim=1)
+        return self.project(res)

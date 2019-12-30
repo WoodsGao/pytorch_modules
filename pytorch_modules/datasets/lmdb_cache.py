@@ -7,15 +7,21 @@ import pickle
 import base64
 import time
 from threading import Thread
+from imgaug import augmenters as ia
 from concurrent.futures import ThreadPoolExecutor
 
 
-class BasicDataset(torch.utils.data.Dataset):
-    def __init__(self, path, img_size=224, augments={}, skip_init=False):
-        super(BasicDataset, self).__init__()
+class LMDBCacheDataset(torch.utils.data.Dataset):
+    def __init__(self, path, img_size=224, augments=None, multi_scale=False, skip_init=False):
+        super(LMDBCacheDataset, self).__init__()
         os.makedirs('tmp', exist_ok=True)
         self.path = path
+        if isinstance(img_size, int):
+            img_size = (img_size, img_size)
+        assert len(img_size) == 2
         self.img_size = img_size
+        self.multi_scale = multi_scale
+        self.resize = ia.Resize({"height": img_size[1], "width": img_size[0]})
         self.augments = augments
         self.data = []
         self.classes = []
@@ -27,7 +33,7 @@ class BasicDataset(torch.utils.data.Dataset):
             os.path.abspath(path).encode('utf-8')).decode('utf-8')
         if not skip_init:
             self.init_db()
-            if len(augments) > 0:
+            if augments is not None:
                 p = Thread(target=self.worker, daemon=True)
                 p.start()
 
