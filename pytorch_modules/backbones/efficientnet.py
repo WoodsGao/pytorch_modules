@@ -119,10 +119,11 @@ class EfficientNet(BasicModel):
         self._fc = nn.Linear(width * 4, num_classes)
         self.initialize_weights()
 
-    def forward(self, inputs):
+    def forward(self, x):
+        x = self.imagenet_normalize(x)
         """ Calls extract_features to extract features, applies final linear layer, and returns logits. """
         # Stem
-        x = self._conv_stem(inputs)
+        x = self._conv_stem(x)
         x = self._bn0(x)
         x = self._swish(x)
 

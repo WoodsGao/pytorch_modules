@@ -104,6 +104,8 @@ class ResNet(BasicModel):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        x = self.imagenet_normalize(x)
+        
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)

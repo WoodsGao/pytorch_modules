@@ -10,10 +10,10 @@ class MiniNet(BasicModel):
         super(MiniNet, self).__init__()
         self.stages = nn.ModuleList([
             ConvNormAct(3, 32, 7, stride=2),
-            SeparableConvNormAct(32, 64, stride=2),
-            SeparableConvNormAct(64, 128, stride=2),
-            SeparableConvNormAct(128, 256, stride=2),
-            SeparableConvNormAct(256, 512, stride=2),
+            ConvNormAct(32, 64, stride=2),
+            ConvNormAct(64, 128, stride=2),
+            ConvNormAct(128, 256, stride=2),
+            ConvNormAct(256, 512, stride=2),
         ])
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
         self._dropout = nn.Dropout(drop_rate)
@@ -22,6 +22,7 @@ class MiniNet(BasicModel):
         self.initialize_weights()
 
     def forward(self, x):
+        x = self.imagenet_normalize(x)
         for stage in self.stages:
             x = stage(x)
         # Pooling and final linear layer
