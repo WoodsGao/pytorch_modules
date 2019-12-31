@@ -60,7 +60,7 @@ class BasicModel(nn.Module):
                 module._modules[last_conv].weight = nn.Parameter(w)
                 module._modules[last_conv].bias = nn.Parameter(b)
                 if replace_by_gn:
-                    module._modules[name] = ada_group_norm(conv.in_channels // conv.groups)
+                    module._modules[name] = ada_group_norm(conv.out_channels, conv.in_channels // conv.groups)
                 else:
                     module._modules[name] = Identity()
                 last_conv = None

@@ -25,7 +25,7 @@ class Aspp(nn.Module):
             [AsppPooling(inplanes, planes),
              ConvNormAct(inplanes, planes, 1)])
         for rate in atrous_rates:
-            self.blocks.append(SeparableConvNormAct(inplanes, planes, dilation=rate))
+            self.blocks.append(ConvNormAct(inplanes, planes, dilation=rate))
         self.project = ConvNormAct(planes * len(self.blocks), planes, 1)
 
     def forward(self, x):

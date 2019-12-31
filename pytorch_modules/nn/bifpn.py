@@ -32,8 +32,8 @@ class BiFPN(nn.Module):
             conv_td = []
             conv_out = []
             for idx, channels in enumerate(channels_list):
-                conv_td.append(SeparableConvNormAct(planes, planes))
-                conv_out.append(SeparableConvNormAct(planes, planes))
+                conv_td.append(ConvNormAct(planes, planes))
+                conv_out.append(ConvNormAct(planes, planes))
             conv_td = nn.ModuleList(conv_td)
             conv_out = nn.ModuleList(conv_out)
             conv_td_list.append(conv_td)
