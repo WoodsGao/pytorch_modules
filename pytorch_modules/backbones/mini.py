@@ -1,11 +1,11 @@
 import math
 import torch
 import torch.nn as nn
-from . import BasicModel
+from . import imagenet_normalize, initialize_weights
 from ..nn import ConvNormAct, SeparableConvNormAct
 
 
-class MiniNet(BasicModel):
+class MiniNet(nn.Module):
     def __init__(self, num_classes=10, drop_rate=0.2):
         super(MiniNet, self).__init__()
         self.stages = nn.ModuleList([
@@ -19,10 +19,10 @@ class MiniNet(BasicModel):
         self._dropout = nn.Dropout(drop_rate)
         self._fc = nn.Linear(512, num_classes)
 
-        self.initialize_weights()
+        initialize_weights(self)
 
     def forward(self, x):
-        x = self.imagenet_normalize(x)
+        x = imagenet_normalize(x)
         for stage in self.stages:
             x = stage(x)
         # Pooling and final linear layer

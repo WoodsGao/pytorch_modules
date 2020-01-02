@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
-from . import BasicModel
+from . import imagenet_normalize, initialize_weights
 from ..nn import build_conv2d, Identity, BasicBlock, Bottleneck
 
 __all__ = [
@@ -32,7 +32,7 @@ model_urls = {
 }
 
 
-class ResNet(BasicModel):
+class ResNet(nn.Module):
     def __init__(self,
                  block,
                  layers,
@@ -80,7 +80,7 @@ class ResNet(BasicModel):
             self.layer4
         ])
 
-        self.initialize_weights()
+        initialize_weights(self)
 
     def _make_layer(self, block, planes, blocks, stride=1, dilate=False):
         previous_dilation = self.dilation
@@ -104,7 +104,7 @@ class ResNet(BasicModel):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.imagenet_normalize(x)
+        x = imagenet_normalize(x)
         
         x = self.conv1(x)
         x = self.bn1(x)

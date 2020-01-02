@@ -2,7 +2,7 @@ import math
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
-from . import BasicModel
+from . import imagenet_normalize, initialize_weights
 from ..nn import build_conv2d, MBConvBlock, Swish
 
 model_urls = [
@@ -29,7 +29,7 @@ params_list = [
 ]
 
 
-class EfficientNet(BasicModel):
+class EfficientNet(nn.Module):
     """
     An EfficientNet model. Most easily loaded with the .from_name or .from_pretrained methods
     """

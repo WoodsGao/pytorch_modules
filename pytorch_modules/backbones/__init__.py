@@ -1,1 +1,1 @@
-from .basic import BasicModel
+from .basic import imagenet_normalize, fuse, freeze, set_swish, replace_bn
