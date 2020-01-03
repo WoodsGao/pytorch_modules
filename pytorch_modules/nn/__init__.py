@@ -1,4 +1,4 @@
-from .activation import Swish, CReLU, Mish, Identity, SimpleSwish
+from .activation import Swish, CReLU, Mish, Identity, SimpleSwish, set_swish
 from .focal import FocalBCELoss
 from .drop_connect import DropConnect
 from .ada_group_norm import ada_group_norm

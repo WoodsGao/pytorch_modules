@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
-from . import imagenet_normalize, initialize_weights
+from . import imagenet_normalize
+from ..utils import initialize_weights
 from ..nn import build_conv2d, Identity, BasicBlock, Bottleneck
 
 __all__ = [

@@ -1,6 +1,7 @@
-from .macro import *
-import torch
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-torch.autograd.set_detect_anomaly(True)
+from .macro import IMG_EXT, device
+from .checkpoint import convert_to_ckpt_model
+from .freeze import freeze
+from .fuse import fuse
+from .init import initialize_weights
 from .fetcher import Fetcher
 from .trainer import Trainer

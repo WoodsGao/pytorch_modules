@@ -4,11 +4,13 @@ import torch.optim as optim
 import torch.distributed as dist
 from tqdm import tqdm
 from . import device
-from ..optims import Ranger
+from . import convert_to_ckpt_model
 
 amp = None
 try:
     from apex import amp
+    from apex.parallel import DistributedDataParallel as DDP
+    from apex.parallel import convert_syncbn_model
 except ImportError:
     pass
 if device == 'cuda':
@@ -57,14 +59,17 @@ class Trainer:
         self.optimizer = optimizer
         if weights:
             self.load(weights)
+        convert_to_ckpt_model(self.model)
         if self.mixed_precision:
-            self.model, self.optimizer = amp.initialize(self.model,
-                                                        self.optimizer,
-                                                        opt_level='O1',
-                                                        verbosity=0)
+            self.model, self.optimizer = amp.initialize(
+                self.model,
+                self.optimizer,
+                opt_level='O1',
+                verbosity=0)
+            print('amp initialized')
         if dist.is_initialized():
-            self.model = torch.nn.parallel.DistributedDataParallel(
-                self.model, find_unused_parameters=True)
+            convert_syncbn_model(self.model)
+            self.model = DDP(self.model, delay_allreduce=True)
         self.optimizer.zero_grad()
         if dist.is_initialized():
             self.model.require_backward_grad_sync = False

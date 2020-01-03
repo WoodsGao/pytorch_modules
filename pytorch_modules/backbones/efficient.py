@@ -2,7 +2,8 @@ import math
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
-from . import imagenet_normalize, initialize_weights
+from . import imagenet_normalize
+from ..utils import initialize_weights
 from ..nn import build_conv2d, MBConvBlock, Swish
 
 model_urls = [
@@ -117,10 +118,10 @@ class EfficientNet(nn.Module):
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
         self._dropout = nn.Dropout(0.2)
         self._fc = nn.Linear(width * 4, num_classes)
-        self.initialize_weights()
+        initialize_weights(self)
 
     def forward(self, x):
-        x = self.imagenet_normalize(x)
+        x = imagenet_normalize(x)
         """ Calls extract_features to extract features, applies final linear layer, and returns logits. """
         # Stem
         x = self._conv_stem(x)

@@ -1,4 +1,4 @@
-from pytorch_modules.backbones.efficientnet import efficientnet
+from pytorch_modules.backbones import efficientnet
 import torch
 
 t = torch.rand([2, 3, 224, 224])

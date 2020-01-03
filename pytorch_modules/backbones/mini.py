@@ -1,7 +1,8 @@
 import math
 import torch
 import torch.nn as nn
-from . import imagenet_normalize, initialize_weights
+from . import imagenet_normalize
+from ..utils import initialize_weights
 from ..nn import ConvNormAct, SeparableConvNormAct
 
 

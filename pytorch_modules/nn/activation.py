@@ -40,3 +40,14 @@ class Swish(nn.Module):
 class SimpleSwish(nn.Module):
     def forward(self, x):
         return x * torch.sigmoid(x)
+
+
+def set_swish(module, simple=False):
+    if simple:
+        for m in module:
+            if isinstance(m, Swish):
+                m = SimpleSwish()
+    else:
+        for m in module:
+            if isinstance(m, SimpleSwish):
+                m = Swish()
