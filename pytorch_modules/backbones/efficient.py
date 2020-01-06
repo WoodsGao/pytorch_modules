@@ -124,13 +124,8 @@ class EfficientNet(nn.Module):
         x = imagenet_normalize(x)
         """ Calls extract_features to extract features, applies final linear layer, and returns logits. """
         # Stem
-        x = self._conv_stem(x)
-        x = self._bn0(x)
-        x = self._swish(x)
-
-        # Blocks
-        for idx, block in enumerate(self._blocks):
-            x = block(x)
+        for stage in self.stages:
+            x = stage(x)
 
         # Head
         x = self._conv_head(x)

@@ -28,7 +28,8 @@ class Trainer:
                  lr=1e-3,
                  warmup=10,
                  lr_decay=1e-3,
-                 mixed_precision=False):
+                 mixed_precision=False, 
+                 checkpoint=True):
         self.accumulate_count = 0
         self.metrics = 0
         self.epoch = 0
@@ -59,7 +60,8 @@ class Trainer:
         self.optimizer = optimizer
         if weights:
             self.load(weights)
-        convert_to_ckpt_model(self.model)
+        if checkpoint:
+            convert_to_ckpt_model(self.model)
         if self.mixed_precision:
             self.model, self.optimizer = amp.initialize(
                 self.model,

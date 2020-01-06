@@ -1,4 +1,6 @@
+import torch
 import torch.nn as nn
+from ..nn import Identity
 
 
 def fuse(module):

@@ -3,6 +3,10 @@ import torch.nn as nn
 from ..nn import MBConvBlock, Bottleneck, BasicBlock, ConvNormAct, SeparableConvNormAct
 from torch.utils.checkpoint import checkpoint
 
+import sys
+
+sys.setrecursionlimit(9000000)
+
 MODULES = (
     nn.Conv2d,
     nn.BatchNorm2d,
@@ -24,7 +28,7 @@ def checkpoint_forward(self, x):
         return self.dummy_forward(x)
 
 
-def convert_to_ckpt_model(module):
+def convert_to_ckpt_model(module, recursion=3):
     if isinstance(module, MODULES):
         module.dummy_forward = module.forward
         module.forward = types.MethodType(checkpoint_forward, module)
@@ -36,7 +40,7 @@ def convert_to_ckpt_model(module):
             module.dummy_forward = module.forward
             module.forward = types.MethodType(checkpoint_forward, module)
             return True
-
-    for name, m in module.named_children():
-        convert_to_ckpt_model(m)
+    if recursion >= 0:
+        for name, m in module.named_children():
+            convert_to_ckpt_model(m, recursion - 1)
     return True
