@@ -13,6 +13,10 @@ A neural network toolkit built on pytorch/opencv/numpy that includes neural netw
 ## Installation
 
     sudo pip3 install pytorch_modules
+    
+or
+
+    sudo python3 setup.py develop
 
 ## Usage
 
