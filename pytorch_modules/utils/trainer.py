@@ -110,6 +110,7 @@ class Trainer:
                 self.epoch = state_dict['epoch']
         self.model.load_state_dict(state_dict['model'], strict=False)
         self.lr_schedule()
+        torch.cuda.empty_cache()
 
     def save(self, save_path_list):
         if os.environ.get('LOCAL_RANK'):
