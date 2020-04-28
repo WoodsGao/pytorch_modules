@@ -6,9 +6,8 @@ A neural network toolkit built on pytorch/opencv/numpy that includes neural netw
 
 ## Features
 
- - Advanced neural network modules, such as EfficientNet, ResNet, SENet, Xception, DenseNet, FocalLoss, AdaboundW
- - Ultra-efficient dataloader that allows you to take full advantage of GPU
- - High performance and multifunctional data augmentation(See [woodsgao/image_augments](https://github.com/woodsgao/image_augments))
+ - Advanced neural network modules/loss functions/optimizers
+ - Ultra-efficient trainer and dataloader that allows you to take full advantage of GPU
 
 ## Installation
 
@@ -16,9 +15,14 @@ A neural network toolkit built on pytorch/opencv/numpy that includes neural netw
     
 or
 
-    sudo python3 setup.py develop
+    sudo python3 setup.py install
 
 ## Usage
+
+### pytorch_modules.utils
+
+Includes a variety of utils for pytorch model training.
+See [woodsgao/pytorch_segmentation](https://github.com/woodsgao/pytorch_segmentation) as a tutorial.
 
 ### pytorch_modules.nn
 
@@ -32,13 +36,9 @@ This module contains a variety of neural network layers, modules and loss functi
     block = ResBlock(8, 16)
     outputs = block(inputs)
 
-### pytorch_modules.augments
-
-See [woodsgao/image_augments](https://github.com/woodsgao/image_augments) for more details.
-
 ### pytorch_modules.backbones
 
-This module includes a series of modified backbone networks, such as EfficientNet, ResNet, SENet, Xception, DenseNet.
+This module includes a series of modified backbone networks.
 
     import torch
     from pytorch_modules.backbones import ResNet
@@ -46,14 +46,10 @@ This module includes a series of modified backbone networks, such as EfficientNe
     # NCHW tensor
     inputs = torch.ones([8, 8, 224, 224])
     model = ResNet(32)
-    outputs = model(inputs)
+    outputs = model.stages[0](inputs)
 
 ### pytorch_modules.datasets
 
 This module includes a series of dataset classes integrated from `pytorch_modules.datasets.BasicDataset` which is integrated from `torch.utils.data.Dataset` .
 The loading method of `pytorch_modules.datasets.BasicDataset` is modified to cache data with `LMDB` to speed up data loading. This allows your gpu to be fully used for model training without spending a lot of time on data loading and data augmentation. 
 Please see the corresponding repository for detailed usage.
-
- - `pytorch_modules.datasets.ClassificationDataset` > [woodsgao/pytorch_classification](https://github.com/woodsgao/pytorch_classification)
- - `pytorch_modules.datasets.SegmentationDataset` > [woodsgao/pytorch_segmentation](https://github.com/woodsgao/pytorch_segmentation)
-

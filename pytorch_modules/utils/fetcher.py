@@ -1,7 +1,9 @@
-import torch
-from threading import Thread, Lock
-from queue import Queue, Empty, Full
+from queue import Empty, Full, Queue
+from threading import Lock, Thread
 from time import sleep, time
+
+import torch
+
 from . import device
 
 

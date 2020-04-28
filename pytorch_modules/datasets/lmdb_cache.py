@@ -1,14 +1,15 @@
+import base64
+import os
+import pickle
+import time
+from concurrent.futures import ThreadPoolExecutor
+from threading import Thread
+
+import lmdb
 import torch
 import torch.utils.data
-from tqdm import tqdm
-import os
-import lmdb
-import pickle
-import base64
-import time
-from threading import Thread
 from imgaug import augmenters as ia
-from concurrent.futures import ThreadPoolExecutor
+from tqdm import tqdm
 
 
 class LMDBCacheDataset(torch.utils.data.Dataset):

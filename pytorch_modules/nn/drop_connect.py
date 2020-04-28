@@ -3,16 +3,16 @@ import torch.nn as nn
 
 
 class DropConnect(nn.Module):
-    def __init__(self, drop_rate=0.5):
+    def __init__(self, p=0.5):
         super(DropConnect, self).__init__()
-        assert drop_rate < 1
-        self.drop_rate = drop_rate
+        assert p < 1
+        self.p = p
 
     def forward(self, x):
         if not self.training:
             return x
-        random_tensor = (1 - self.drop_rate) + torch.rand(
+        random_tensor = (1 - self.p) + torch.rand(
             [x.size(0), 1, 1, 1], dtype=x.dtype, device=x.device)
         binary_tensor = torch.floor(random_tensor)
-        x.mul_(binary_tensor / (1 - self.drop_rate))
+        x.mul_(binary_tensor / (1 - self.p))
         return x

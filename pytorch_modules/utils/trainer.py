@@ -1,10 +1,12 @@
 import os
+
 import torch
-import torch.optim as optim
 import torch.distributed as dist
+import torch.optim as optim
+from torch.nn.parallel import DistributedDataParallel as DDP
 from tqdm import tqdm
-from . import device
-from . import convert_to_ckpt_model
+
+from . import convert_to_ckpt_model, device
 
 amp = None
 try:
@@ -22,21 +24,22 @@ class Trainer:
                  model,
                  fetcher,
                  loss_fn,
-                 weights='',
                  accumulate=1,
                  adam=False,
                  lr=1e-3,
+                 weight_decay=1e-3,
                  warmup=10,
                  lr_decay=1e-3,
-                 mixed_precision=False, 
-                 checkpoint=True):
+                 resume=True,
+                 weights='',
+                 mixed_precision=False,
+                 checkpoint=False):
         self.accumulate_count = 0
         self.metrics = 0
         self.epoch = 0
         self._lr = lr
         self.warmup = warmup
         self.lr_decay = lr_decay
-        lr = self.lr_schedule()
         self.accumulate = accumulate
         self.fetcher = fetcher
         self.loss_fn = loss_fn
@@ -48,30 +51,34 @@ class Trainer:
         if adam:
             optimizer = optim.AdamW(model.parameters(),
                                     lr=lr,
-                                    weight_decay=1e-5,
+                                    weight_decay=weight_decay,
                                     eps=1e-4 if self.mixed_precision else 1e-8)
         else:
             optimizer = optim.SGD(model.parameters(),
                                   lr=lr,
                                   momentum=0.9,
-                                  weight_decay=1e-5)
+                                  weight_decay=weight_decay)
         self.adam = adam
         self.model = model
         self.optimizer = optimizer
         if weights:
-            self.load(weights)
+            self.load(weights, resume)
         if checkpoint:
             convert_to_ckpt_model(self.model)
         if self.mixed_precision:
-            self.model, self.optimizer = amp.initialize(
-                self.model,
-                self.optimizer,
-                opt_level='O1',
-                verbosity=0)
+            self.model, self.optimizer = amp.initialize(self.model,
+                                                        self.optimizer,
+                                                        opt_level='O1',
+                                                        verbosity=0)
             print('amp initialized')
         if dist.is_initialized():
-            convert_syncbn_model(self.model)
-            self.model = DDP(self.model, delay_allreduce=True)
+            if amp is None:
+                self.model = DDP(
+                    self.model, device_ids=[int(os.environ.get('LOCAL_RANK'))])
+            else:
+                convert_syncbn_model(self.model)
+                self.model = DDP(self.model, delay_allreduce=True)
+
         self.optimizer.zero_grad()
         if dist.is_initialized():
             self.model.require_backward_grad_sync = False
@@ -82,35 +89,41 @@ class Trainer:
         else:
             lr = self._lr * (1 - self.lr_decay)**(self.epoch - self.warmup)
         print('lr change to: %6lf' % lr)
-        return lr
+        self.set_lr(lr)
 
-    def load(self, weights):
-        state_dict = torch.load(weights, map_location=device)
-        if self.adam:
-            if 'adam' in state_dict:
-                self.optimizer.load_state_dict(state_dict['adam'])
-        else:
-            if 'sgd' in state_dict:
-                self.optimizer.load_state_dict(state_dict['sgd'])
-        if 'm' in state_dict:
-            self.metrics = state_dict['m']
-        if 'e' in state_dict:
-            self.epoch = state_dict['e']
-        self.model.load_state_dict(state_dict['model'], strict=False)
-        lr = self.lr_schedule()
+    def set_lr(self, lr):
         for pg in self.optimizer.param_groups:
             pg['lr'] = lr
 
+    def load(self, weights, resume):
+        state_dict = torch.load(weights, map_location=device)
+        if resume:
+            if self.adam:
+                if 'adam' in state_dict:
+                    self.optimizer.load_state_dict(state_dict['adam'])
+            else:
+                if 'sgd' in state_dict:
+                    self.optimizer.load_state_dict(state_dict['sgd'])
+            if 'metrics' in state_dict:
+                self.metrics = state_dict['metrics']
+            if 'epoch' in state_dict:
+                self.epoch = state_dict['epoch']
+        self.model.load_state_dict(state_dict['model'], strict=False)
+        self.lr_schedule()
+
     def save(self, save_path_list):
+        if os.environ.get('LOCAL_RANK'):
+            if int(os.environ['LOCAL_RANK']) > 0:
+                return False
         if len(save_path_list) == 0:
             return False
         state_dict = {
             'model':
             self.model.module.state_dict()
             if dist.is_initialized() else self.model.state_dict(),
-            'm':
+            'metrics':
             self.metrics,
-            'e':
+            'epoch':
             self.epoch
         }
         if self.adam:
@@ -120,12 +133,14 @@ class Trainer:
         for save_path in save_path_list:
             torch.save(state_dict, save_path)
 
-    def run_epoch(self):
+    def step(self):
+        # lr warmup and decay
+        self.lr_schedule()
         print('Epoch: %d' % self.epoch)
         self.model.train()
         total_loss = 0
-        pbar = tqdm(enumerate(self.fetcher), total=len(self.fetcher))
-        for idx, (inputs, targets) in pbar:
+        pbar = tqdm(self.fetcher)
+        for idx, (inputs, targets) in enumerate(pbar):
             if inputs.size(0) < 2:
                 continue
             self.accumulate_count += 1
@@ -157,9 +172,5 @@ class Trainer:
                 self.optimizer.zero_grad()
                 if dist.is_initialized():
                     self.model.require_backward_grad_sync = False
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
         self.epoch += 1
-        # lr warmup and decay
-        lr = self.lr_schedule()
-        for pg in self.optimizer.param_groups:
-            pg['lr'] = lr

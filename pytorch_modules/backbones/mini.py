@@ -1,9 +1,10 @@
 import math
+
 import torch
 import torch.nn as nn
-from . import imagenet_normalize
-from ..utils import initialize_weights
+
 from ..nn import ConvNormAct, SeparableConvNormAct
+from ..utils import initialize_weights
 
 
 class MiniNet(nn.Module):
@@ -23,7 +24,6 @@ class MiniNet(nn.Module):
         initialize_weights(self)
 
     def forward(self, x):
-        x = imagenet_normalize(x)
         for stage in self.stages:
             x = stage(x)
         # Pooling and final linear layer

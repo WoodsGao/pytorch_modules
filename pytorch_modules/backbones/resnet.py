@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
-from . import imagenet_normalize
+
+from ..nn import BasicBlock, Bottleneck, Identity, build_conv2d
 from ..utils import initialize_weights
-from ..nn import build_conv2d, Identity, BasicBlock, Bottleneck
 
 __all__ = [
     'ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
@@ -105,7 +105,6 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        x = imagenet_normalize(x)
         
         for stage in self.stages:
             x = stage(x)

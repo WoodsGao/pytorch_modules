@@ -1,9 +1,11 @@
-import math
-import torch
-# from torch.optim.optimizer import Optimizer, required
-import torch.optim as optim
 import itertools as it
+import math
+
+import torch
+import torch.optim as optim
 # from torch.optim import Optimizer
+# from torch.optim.optimizer import Optimizer, required
+
 # credit - Lookahead implementation from LonePatient - https://github.com/lonePatient/lookahead_pytorch/blob/master/optimizer.py
 # credit2 - RAdam code by https://github.com/LiyuanLucasLiu/RAdam/blob/master/radam.py
 

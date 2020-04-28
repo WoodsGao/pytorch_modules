@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 # weight standard conv
 # class WSConv2d(nn.Conv2d):
 #     def __init__(self, *args, **kwargs):
@@ -37,6 +36,7 @@ import torch.nn.functional as F
 #             weight = self.weight_standard()
 #         return F.conv2d(x, weight, self.bias, self.stride, self.padding,
 #                         self.dilation, self.groups)
+
 
 class WSConv2d(nn.Conv2d):
     def forward(self, x):
