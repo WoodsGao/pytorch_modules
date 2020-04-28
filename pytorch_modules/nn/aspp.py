@@ -2,12 +2,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from . import ConvNormAct, SeparableConvNormAct
+from .utils import ConvNormAct, SeparableConvNormAct
 
 
-class AsppPooling(nn.Module):
+class ASPPPooling(nn.Module):
     def __init__(self, inplanes, planes):
-        super(AsppPooling, self).__init__()
+        super(ASPPPooling, self).__init__()
         self.gap = nn.Sequential(nn.AdaptiveAvgPool2d(1),
                                  ConvNormAct(inplanes, planes, 1))
 
@@ -19,11 +19,11 @@ class AsppPooling(nn.Module):
                              align_corners=False)
 
 
-class Aspp(nn.Module):
+class ASPP(nn.Module):
     def __init__(self, inplanes, planes, atrous_rates=[12, 24, 36]):
-        super(Aspp, self).__init__()
+        super(ASPP, self).__init__()
         self.blocks = nn.ModuleList(
-            [AsppPooling(inplanes, planes),
+            [ASPPPooling(inplanes, planes),
              ConvNormAct(inplanes, planes, 1)])
         for rate in atrous_rates:
             self.blocks.append(ConvNormAct(inplanes, planes, dilation=rate))

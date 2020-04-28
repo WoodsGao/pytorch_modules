@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from . import ConvNormAct
+from .utils import ConvNormAct
 
 
 class FPN(nn.Module):
@@ -20,7 +20,7 @@ class FPN(nn.Module):
         assert reps > 0
         first_conv = []
         for idx, channels in enumerate(channels_list):
-            first_conv.append(ConvNormAct(channels, out_channels, 1))
+            first_conv.append(ConvNormAct(channels, out_channels))
         self.first_conv = nn.ModuleList(first_conv)
 
         fpn_list = []

@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-from . import build_conv2d
+from .utils import build_conv2d
 
 
 class BasicBlock(nn.Module):
