@@ -46,6 +46,7 @@ class Trainer:
         if amp is None:
             self.mixed_precision = False
         else:
+            print('amp loaded')
             self.mixed_precision = mixed_precision
         model = model.to(device)
         if adam:
@@ -113,9 +114,8 @@ class Trainer:
         torch.cuda.empty_cache()
 
     def save(self, save_path_list):
-        if os.environ.get('LOCAL_RANK'):
-            if int(os.environ['LOCAL_RANK']) > 0:
-                return False
+        if dist.get_rank() > 0:
+            return False
         if len(save_path_list) == 0:
             return False
         state_dict = {
@@ -173,5 +173,5 @@ class Trainer:
                 self.optimizer.zero_grad()
                 if dist.is_initialized():
                     self.model.require_backward_grad_sync = False
-        # torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
         self.epoch += 1
