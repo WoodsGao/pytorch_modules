@@ -1,4 +1,6 @@
 import os
+import os.path as osp
+import shutil
 
 import torch
 import torch.distributed as dist
@@ -24,6 +26,7 @@ class Trainer:
                  model,
                  fetcher,
                  loss_fn,
+                 workdir,
                  accumulate=1,
                  adam=False,
                  lr=1e-3,
@@ -43,6 +46,9 @@ class Trainer:
         self.accumulate = accumulate
         self.fetcher = fetcher
         self.loss_fn = loss_fn
+        self.workdir = workdir
+        os.makedirs(workdir, exist_ok=True)
+
         if amp is None:
             self.mixed_precision = False
         else:
@@ -113,11 +119,10 @@ class Trainer:
         self.lr_schedule()
         torch.cuda.empty_cache()
 
-    def save(self, save_path_list):
-        if dist.get_rank() > 0:
-            return False
-        if len(save_path_list) == 0:
-            return False
+    def save(self, best=False):
+        if dist.is_initialized():
+            if dist.get_rank() > 0:
+                return False
         state_dict = {
             'model':
             self.model.module.state_dict()
@@ -131,8 +136,18 @@ class Trainer:
             state_dict['adam'] = self.optimizer.state_dict()
         else:
             state_dict['sgd'] = self.optimizer.state_dict()
-        for save_path in save_path_list:
-            torch.save(state_dict, save_path)
+        cwd = os.getcwd()
+        os.chdir(self.workdir)
+        save_path = 'epoch_%d.pth' % self.epoch
+        torch.save(state_dict, save_path)
+        if osp.exists('last.pth'):
+            os.remove('last.pth')
+        os.symlink(save_path, 'last.pth')
+        if best:
+            if osp.exists('best.pth'):
+                os.remove('best.pth')
+            os.symlink(save_path, 'best.pth')
+        os.chdir(cwd)
 
     def step(self):
         # lr warmup and decay

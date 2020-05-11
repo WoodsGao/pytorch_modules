@@ -1,5 +1,3 @@
-import math
-
 import torch
 import torch.nn as nn
 
@@ -17,18 +15,13 @@ class MiniNet(nn.Module):
             ConvNormAct(128, 256, stride=2),
             ConvNormAct(256, 512, stride=2),
         ])
-        self._avg_pooling = nn.AdaptiveAvgPool2d(1)
-        self._dropout = nn.Dropout(drop_rate)
-        self._fc = nn.Linear(512, num_classes)
 
         initialize_weights(self)
 
     def forward(self, x):
+        features = []
         for stage in self.stages:
             x = stage(x)
-        # Pooling and final linear layer
-        x = self._avg_pooling(x)
-        x = torch.flatten(x, 1)
-        x = self._dropout(x)
-        x = self._fc(x)
-        return x
+            features.append(x)
+
+        return tuple(features)

@@ -4,6 +4,8 @@ import torch.nn.functional as F
 
 from .activation import Identity, Mish
 
+BN_MOMENTUM = 0.1
+
 
 def build_conv2d(inplanes,
                  planes,
@@ -30,18 +32,16 @@ class ConvNormAct(nn.Sequential):
                  stride=1,
                  groups=1,
                  dilation=1,
-                 activate=nn.ReLU(inplace=True),
-                 bn_momentum=0.1):
+                 activate=nn.ReLU(inplace=True)):
         super(ConvNormAct, self).__init__(
-            nn.Conv2d(inplanes,
-                      planes,
-                      ksize,
-                      stride=stride,
-                      padding=(ksize - 1) // 2 * dilation,
-                      groups=groups,
-                      dilation=dilation,
-                      bias=False),
-            nn.BatchNorm2d(planes, momentum=bn_momentum),
+            build_conv2d(inplanes,
+                         planes,
+                         ksize,
+                         stride=stride,
+                         groups=groups,
+                         dilation=dilation,
+                         bias=False),
+            nn.BatchNorm2d(planes, momentum=BN_MOMENTUM),
             activate if activate is not None else Identity(),
         )
 
@@ -73,7 +73,6 @@ class SeparableConv(nn.Sequential):
                  ksize=3,
                  stride=1,
                  dilation=1,
-                 activate=nn.ReLU(inplace=True),
                  bias=True):
         super(SeparableConv, self).__init__(
             ConvNormAct(inplanes,
@@ -83,5 +82,5 @@ class SeparableConv(nn.Sequential):
                         groups=inplanes,
                         dilation=dilation,
                         activate=None),
-            nn.Conv2d(inplanes, planes, 1, bias=bias),
+            build_conv2d(inplanes, planes, 1, bias=bias),
         )

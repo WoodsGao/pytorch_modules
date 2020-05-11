@@ -15,7 +15,7 @@ class FocalBCELoss(nn.Module):
         self.reduction = reduction
         self.eps = eps
         if weight is not None:
-            self.weight = weight.unsqueeze(0).unsqueeze(2)
+            self.weight = weight.unsqueeze(0)
         else:
             self.weight = 1
 

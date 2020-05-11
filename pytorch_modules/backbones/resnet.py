@@ -73,13 +73,13 @@ class ResNet(nn.Module):
                                        layers[3],
                                        stride=2,
                                        dilate=replace_stride_with_dilation[2])
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
-        self.stages = nn.ModuleList([
-            nn.Sequential(self.conv1, self.bn1, self.relu),
-            nn.Sequential(self.maxpool, self.layer1), self.layer2, self.layer3,
-            self.layer4
-        ])
+        # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        # self.fc = nn.Linear(512 * block.expansion, num_classes)
+        # self.stages = nn.ModuleList([
+        #     nn.Sequential(self.conv1, self.bn1, self.relu),
+        #     nn.Sequential(self.maxpool, self.layer1), self.layer2, self.layer3,
+        #     self.layer4
+        # ])
 
         initialize_weights(self)
 
@@ -105,15 +105,26 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        
-        for stage in self.stages:
-            x = stage(x)
+        features = []
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        features.append(x)
 
-        x = self.avgpool(x)
-        x = torch.flatten(x, 1)
-        x = self.fc(x)
+        x = self.maxpool(x)
+        x = self.layer1(x)
+        features.append(x)
 
-        return x
+        x = self.layer2(x)
+        features.append(x)
+
+        x = self.layer3(x)
+        features.append(x)
+
+        x = self.layer4(x)
+        features.append(x)
+
+        return tuple(features)
 
 
 def _resnet(arch, block, layers, pretrained, progress, **kwargs):
