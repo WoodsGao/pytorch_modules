@@ -13,11 +13,6 @@ class Mish(nn.Module):
         return x * torch.tanh(F.softplus(x))
 
 
-class Identity(nn.Module):
-    def forward(self, x):
-        return x
-
-
 class Swish(nn.Module):
     def forward(self, x):
         return x * torch.sigmoid(x)

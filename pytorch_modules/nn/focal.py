@@ -26,10 +26,9 @@ class FocalBCELoss(nn.Module):
         loss = - a * torch.pow((1 - y_pred), g) * y_true * torch.log(y_pred) - \
             (1 - a) * torch.pow(y_pred, g) * (1 - y_true) * torch.log(1 - y_pred)
         loss *= self.weight
-        mloss = loss.sum(1)
+        if self.reduction == 'none':
+            return loss
         if self.reduction == 'mean':
-            return mloss.mean()
+            return loss.mean()
         if self.reduction == 'sum':
-            return mloss.sum()
-        else:
-            return mloss
+            return loss.sum()
