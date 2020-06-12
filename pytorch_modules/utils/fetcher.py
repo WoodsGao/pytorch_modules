@@ -4,17 +4,18 @@ from time import sleep, time
 
 import torch
 
-from . import device
+from . import device as default_device
 
 
 # Referencehttps://github.com/NVIDIA/apex/blob/master/examples/imagenet/main_amp.py
 class Fetcher:
-    def __init__(self, loader, post_fetch_fn=None):
+    def __init__(self, loader, post_fetch_fn=None, device=None):
         self.idx = 0
         self.loader = loader
         self.loader_iter = iter(loader)
         self.post_fetch_fn = post_fetch_fn
-        if device == 'cuda':
+        self.device = device if device is not None else default_device
+        if self.device == 'cuda':
             self.stream = torch.cuda.Stream()
         self.preload()
 
@@ -31,7 +32,7 @@ class Fetcher:
             self.batch = None
             self.loader_iter = iter(self.loader)
             return None
-        if device == 'cuda':
+        if self.device == 'cuda':
             with torch.cuda.stream(self.stream):
                 self.batch = [
                     b.cuda(non_blocking=True)
@@ -39,7 +40,7 @@ class Fetcher:
                 ]
 
     def __next__(self):
-        if device == 'cuda':
+        if self.device == 'cuda':
             torch.cuda.current_stream().wait_stream(self.stream)
         batch = self.batch
         self.preload()

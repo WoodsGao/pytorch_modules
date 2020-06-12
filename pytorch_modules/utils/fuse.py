@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 
-from ..nn import Identity
-
 
 def fuse(module):
     last_conv = None
@@ -37,8 +35,18 @@ def fuse(module):
                                                    bias=True)
             module._modules[last_conv].weight = nn.Parameter(w)
             module._modules[last_conv].bias = nn.Parameter(b)
-            module._modules[name] = Identity()
+            module._modules[name] = nn.Identity()
             last_conv = None
         else:
             last_conv = None
             fuse(m)
+
+
+def replace_relu6(module):
+    for name, m in module.named_children():
+        if isinstance(m, nn.ReLU6):
+            training = m.training
+            module._modules[name] = nn.ReLU(m.inplace)
+            module._modules[name].training = training
+        else:
+            replace_relu6(m)

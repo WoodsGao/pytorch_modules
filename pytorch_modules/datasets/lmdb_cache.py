@@ -13,13 +13,10 @@ from tqdm import tqdm
 
 
 class LMDBCacheDataset(torch.utils.data.Dataset):
-    def __init__(self, path, img_size=224, augments=None, multi_scale=False, skip_init=False):
+    def __init__(self, path, img_size=[224, 224], augments=None, multi_scale=False, skip_init=False):
         super(LMDBCacheDataset, self).__init__()
         os.makedirs('tmp', exist_ok=True)
         self.path = path
-        if isinstance(img_size, int):
-            img_size = (img_size, img_size)
-        assert len(img_size) == 2
         self.img_size = img_size
         self.multi_scale = multi_scale
         self.resize = ia.Resize({"height": img_size[1], "width": img_size[0]})
