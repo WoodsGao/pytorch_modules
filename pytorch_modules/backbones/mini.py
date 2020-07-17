@@ -6,7 +6,7 @@ from ..utils import initialize_weights
 
 
 class MiniNet(nn.Module):
-    def __init__(self, num_classes=10, drop_rate=0.2):
+    def __init__(self):
         super(MiniNet, self).__init__()
         self.stages = nn.ModuleList([
             ConvNormAct(3, 32, 7, stride=2),

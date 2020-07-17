@@ -53,3 +53,9 @@ This module includes a series of modified backbone networks.
 This module includes a series of dataset classes integrated from `pytorch_modules.datasets.BasicDataset` which is integrated from `torch.utils.data.Dataset` .
 The loading method of `pytorch_modules.datasets.BasicDataset` is modified to cache data with `LMDB` to speed up data loading. This allows your gpu to be fully used for model training without spending a lot of time on data loading and data augmentation. 
 Please see the corresponding repository for detailed usage.
+
+# Citing
+
+```
+
+```
